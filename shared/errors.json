@@ -1,0 +1,36 @@
+{
+  "WEBSOCKET_ERRORS": {
+    "RATE_LIMIT_EXCEEDED": {
+      "code": 4001,
+      "description": "Rate limit exceeded"
+    },
+    "SESSION_ID_REQUIRED": {
+      "code": 4002,
+      "description": "Session not found. The code may be expired or incorrect."
+    },
+    "SESSION_NOT_FOUND": {
+      "code": 4003,
+      "description": "Session not found. The code may be expired or incorrect."
+    },
+    "SESSION_FULL": {
+      "code": 4004,
+      "description": "Session already has both participants"
+    },
+    "UNKNOWN": {
+      "code": 4999,
+      "description": "Unknown WebSocket error"
+    }
+  },
+  "WEBSOCKET_MESSAGE_ERRORS": {
+    "INTERNAL_SERVER_ERROR": "internal_server_error",
+    "INVALID_JSON": "invalid_json",
+    "INVALID_ROLE": "invalid_role",
+    "ROLE_TAKEN": "role_taken",
+    "INVALID_ORDER": "invalid_order",
+    "INVALID_CARD_ID": "invalid_card_id",
+    "INVALID_Y_POSITION": "invalid_y_position",
+    "INVALID_PHASE": "invalid_phase",
+    "WRONG_PHASE": "wrong_phase",
+    "UNKNOWN_MESSAGE_TYPE": "unknown_message_type"
+  }
+}

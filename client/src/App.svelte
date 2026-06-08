@@ -1,0 +1,337 @@
+<script>
+  import { sessionState, wsError, fatalWsError, connect, send, disconnect } from './ws.js';
+  import JoinForm from './lib/JoinForm.svelte';
+  import ArrangeRow from './lib/ArrangeRow.svelte';
+  import RevealView from './lib/RevealView.svelte';
+  import Phase2Board from './lib/Phase2Board.svelte';
+
+  let page = $state('home'); // 'home' | 'session'
+  let myRole = $state(null);
+  let localOrder = $state(null); // draft order during arrange phase
+  let cardWidth = $state(90);
+  let cardHeight = $state(130);
+
+  let session = $derived($sessionState);
+  let error = $derived($wsError);
+  let fatalError = $derived($fatalWsError);
+
+  function computeCardDims() {
+    const gap = 6;
+    const hPad = 32;
+    const vPad = 160; // header + controls approx
+    const availW = window.innerWidth - hPad - gap * 9;
+    const availH = window.innerHeight - vPad;
+    const w = Math.max(60, Math.min(100, Math.floor(availW / 10)));
+    const h = Math.min(Math.round(w * 1.45), Math.floor(availH * 0.88));
+    cardWidth = w;
+    cardHeight = h;
+  }
+
+  $effect(() => {
+    computeCardDims();
+  });
+
+  function handleJoin(sessionId, role) {
+    myRole = role;
+    page = 'session';
+    connect(sessionId);
+    // After connecting, send role assignment
+    // We need to wait for connection — send after first state arrives
+  }
+
+  // When we get our first state, send the join message
+  let hasJoined = false;
+  $effect(() => {
+    if (session && !hasJoined && myRole) {
+      hasJoined = true;
+      send({ type: 'join', role: myRole });
+    }
+  });
+
+  // Seed localOrder from server when we enter arrange phase
+  $effect(() => {
+    if (!session) return;
+    if (session.phase === 'subject_arrange' && myRole === 'subject' && session.subjectOrder && !localOrder) {
+      localOrder = [...session.subjectOrder];
+    }
+    if (session.phase === 'interviewer_arrange' && myRole === 'interviewer' && session.interviewerOrder && !localOrder) {
+      localOrder = [...session.interviewerOrder];
+    }
+  });
+
+  function submitArrange() {
+    if (!localOrder) return;
+    send({ type: 'finish_arrange', order: localOrder });
+    localOrder = null;
+  }
+
+  function handleLeave() {
+    disconnect();
+    page = 'home';
+    myRole = null;
+    localOrder = null;
+    hasJoined = false;
+  }
+
+  function handleReset() {
+    send({ type: 'reset' });
+    localOrder = null;
+  }
+
+  let phaseBadge = $derived.by(() => {
+    if (!session) return '';
+    const labels = {
+      waiting: 'Phase 1 — Importance',
+      subject_arrange: 'Phase 1 — Importance',
+      interviewer_arrange: 'Phase 1 — Importance',
+      reveal: 'Phase 1 — Reveal',
+      phase2: 'Phase 2 — Realisation',
+    };
+    return labels[session.phase] || '';
+  });
+
+  let otherRole = $derived(myRole === 'subject' ? 'interviewer' : 'subject');
+
+  let otherConnected = $derived.by(() => {
+    if (!session) return false;
+    return session.participants.some(p => p.role === otherRole);
+  });
+</script>
+
+<svelte:window onresize={computeCardDims} />
+
+<div class="app">
+  <header>
+    <span class="title">Moving Motivators</span>
+    {#if session}
+      <span class="badge">{phaseBadge}</span>
+      <span class="session-id">#{session.id}</span>
+    {/if}
+    {#if page === 'session'}
+      <button class="leave-btn" onclick={handleLeave}>Leave</button>
+    {/if}
+  </header>
+
+  <main>
+    {#if page === 'home'}
+      <JoinForm onJoin={handleJoin} />
+
+    {:else if fatalError}
+      <div class="screen">
+        <p class="error">{fatalError}</p>
+        <button class="btn-primary" onclick={handleLeave}>Back to home</button>
+      </div>
+
+    {:else if !session}
+      <div class="screen"><p class="muted">Connecting…</p></div>
+
+    {:else if session.phase === 'waiting'}
+      <div class="screen">
+        <h2>Session {session.id}</h2>
+        <p>Waiting for participants to join…</p>
+        {#if !otherConnected}
+          <p class="muted">Share the code <strong>{session.id}</strong> with the {otherRole}.</p>
+        {/if}
+      </div>
+
+    {:else if session.phase === 'subject_arrange'}
+      {#if myRole === 'subject'}
+        <div class="arrange-view">
+          <div class="arrange-header">
+            <span class="axis-label">← Less Important &nbsp;·&nbsp; More Important →</span>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done ✓</button>
+          </div>
+          {#if localOrder}
+            <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
+          {:else}
+            <div class="screen"><p class="muted">Loading cards…</p></div>
+          {/if}
+        </div>
+      {:else}
+        <div class="screen">
+          <h2>Subject is arranging…</h2>
+          <p class="muted">Please wait while the subject ranks their motivators.</p>
+        </div>
+      {/if}
+
+    {:else if session.phase === 'interviewer_arrange'}
+      {#if myRole === 'interviewer'}
+        <div class="arrange-view">
+          <div class="arrange-header">
+            <span class="axis-label">← Less Important &nbsp;·&nbsp; More Important →</span>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done ✓</button>
+          </div>
+          {#if localOrder}
+            <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
+          {:else}
+            <div class="screen"><p class="muted">Loading cards…</p></div>
+          {/if}
+        </div>
+      {:else}
+        <div class="screen">
+          <h2>Interviewer is arranging…</h2>
+          <p class="muted">Please wait while the interviewer ranks the motivators.</p>
+        </div>
+      {/if}
+
+    {:else if session.phase === 'reveal'}
+      <RevealView
+        subjectOrder={session.subjectOrder}
+        interviewerOrder={session.interviewerOrder}
+        {cardWidth}
+        cardHeight={Math.floor(cardHeight * 0.88)}
+        onAdvance={() => send({ type: 'set_phase', phase: 'phase2' })}
+      />
+
+    {:else if session.phase === 'phase2'}
+      <Phase2Board
+        {session}
+        onUpdateY={(who, cardId, y) => send({ type: 'update_y', who, cardId, y })}
+        onToggleInterviewer={(show) => send({ type: 'toggle_interviewer', show })}
+        onBack={() => send({ type: 'set_phase', phase: 'reveal' })}
+        onReset={handleReset}
+      />
+    {/if}
+
+    {#if error && !fatalError}
+      <div class="toast">{error}</div>
+    {/if}
+  </main>
+</div>
+
+<style>
+  :global(*, *::before, *::after) { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :global(body) {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .app {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    flex-shrink: 0;
+    min-height: 48px;
+  }
+
+  .title { font-size: 15px; font-weight: 700; }
+
+  .badge {
+    padding: 2px 10px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .session-id { font-size: 12px; color: #475569; margin-left: auto; }
+
+  .leave-btn {
+    padding: 5px 12px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .leave-btn:hover { background: #334155; color: #e2e8f0; }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  .screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    height: 100%;
+    padding: 32px;
+    text-align: center;
+  }
+
+  h2 { font-size: 24px; font-weight: 700; }
+  p { color: #94a3b8; max-width: 380px; line-height: 1.6; font-size: 14px; }
+  .muted { color: #475569; }
+  .error { color: #f87171; }
+
+  .arrange-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    gap: 10px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .arrange-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .axis-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .btn-primary {
+    padding: 9px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.97); }
+
+  .toast {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f87171;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 200;
+  }
+</style>

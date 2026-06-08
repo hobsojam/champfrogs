@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      # - SESSION_TTL_HOURS=24  # delete sessions inactive for this many hours (default: 24)
+    restart: unless-stopped

@@ -1,0 +1,9 @@
+node_modules/
+client/dist/
+server/public/
+coverage/
+reports/
+.env
+*.local
+.claude/
+.codex/
