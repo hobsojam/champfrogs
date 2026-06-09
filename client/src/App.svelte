@@ -1,5 +1,5 @@
 <script>
-  import { sessionState, wsError, fatalWsError, connect, send, disconnect } from './ws.js';
+  import { sessionState, wsError, fatalWsError, isSessionExpired, connect, send, disconnect } from './ws.js';
   import JoinForm from './lib/JoinForm.svelte';
   import ArrangeRow from './lib/ArrangeRow.svelte';
   import RevealView from './lib/RevealView.svelte';
@@ -14,6 +14,7 @@
   let session = $derived($sessionState);
   let error = $derived($wsError);
   let fatalError = $derived($fatalWsError);
+  let sessionExpired = $derived($isSessionExpired);
 
   function computeCardDims() {
     const gap = 6;
@@ -71,6 +72,7 @@
     myRole = null;
     localOrder = null;
     hasJoined = false;
+    history.replaceState(null, '', '/');
   }
 
   function handleReset() {
@@ -140,8 +142,15 @@
 
     {:else if fatalError}
       <div class="screen">
-        <p class="error">{fatalError}</p>
-        <button class="btn-primary" onclick={handleLeave}>Back to home</button>
+        {#if sessionExpired}
+          <h2>Session ended</h2>
+          <p>This session expired after 24 hours of inactivity.</p>
+        {:else}
+          <p class="error">{fatalError}</p>
+        {/if}
+        <button class="btn-primary" onclick={handleLeave}>
+          {sessionExpired ? 'Start new session' : 'Back to home'}
+        </button>
       </div>
 
     {:else if !session}

@@ -242,7 +242,12 @@ function sweepInactiveSessions(sockets, ttlMs = SESSION_TTL_MS) {
     if (session.lastActivityAt < cutoff) {
       const sessionWs = sockets.get(session.id);
       if (sessionWs) {
-        for (const ws of sessionWs) ws.close(1001, 'Session expired');
+        for (const ws of sessionWs) {
+          if (ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify({ type: 'session_expired' }));
+          }
+          ws.close(1001, 'Session expired');
+        }
         sockets.delete(session.id);
       }
       deleteSession(session.id);

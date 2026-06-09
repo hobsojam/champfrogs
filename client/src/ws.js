@@ -4,6 +4,7 @@ import { WEBSOCKET_ERRORS } from '../../shared/errors.json';
 export const sessionState = writable(null);
 export const wsError = writable(null);
 export const fatalWsError = writable(null);
+export const isSessionExpired = writable(false);
 
 let socket = null;
 let retryCount = 0;
@@ -45,6 +46,7 @@ export function connect(sessionId) {
   retryCount = 0;
   wsError.set(null);
   fatalWsError.set(null);
+  isSessionExpired.set(false);
   getOrCreateParticipantId();
   openConnection();
 }
@@ -62,6 +64,10 @@ function openConnection() {
         sessionState.set(msg.session);
       } else if (msg.type === 'error') {
         wsError.set(msg.message);
+      } else if (msg.type === 'session_expired') {
+        intentionalClose = true;
+        isSessionExpired.set(true);
+        setFatalError('This session has ended. Sessions expire after 24 hours of inactivity.');
       }
     } catch {
       // ignore malformed messages
@@ -110,4 +116,5 @@ export function disconnect() {
   sessionState.set(null);
   wsError.set(null);
   fatalWsError.set(null);
+  isSessionExpired.set(false);
 }
