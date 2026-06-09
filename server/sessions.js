@@ -115,6 +115,7 @@ function resetSession(sessionId) {
   const session = sessions.get(sessionId);
   if (!session) return;
   session.phase = 'waiting';
+  session.participants = [];
   session.subject = {
     order: shuffle(CARD_IDS),
     yPositions: Object.fromEntries(CARD_IDS.map(id => [id, 50])),
