@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm install
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm install
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Start server
+        working-directory: server
+        env:
+          STATIC_DIR: ../client/dist
+        run: node index.js &
+
+      - name: Wait for server to be ready
+        run: timeout 15 bash -c 'until curl -sf http://localhost:3000/health; do sleep 0.5; done'
+
+      - name: Run smoke test
+        working-directory: server
+        run: node smoke.js
