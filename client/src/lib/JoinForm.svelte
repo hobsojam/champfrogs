@@ -188,7 +188,7 @@
   input {
     padding: 10px 14px;
     background: #1e293b;
-    border: 1.5px solid #334155;
+    border: 1.5px solid #64748b;
     border-radius: 8px;
     color: #e2e8f0;
     font-size: 18px;
@@ -211,7 +211,7 @@
     flex: 1;
     padding: 12px 8px;
     background: #1e293b;
-    border: 1.5px solid #334155;
+    border: 1.5px solid #64748b;
     border-radius: 10px;
     color: #94a3b8;
     cursor: pointer;
@@ -240,7 +240,7 @@
     padding: 20px 32px;
     background: #1e293b;
     border-radius: 12px;
-    border: 1.5px solid #334155;
+    border: 1.5px solid #64748b;
   }
 
   .code-label {

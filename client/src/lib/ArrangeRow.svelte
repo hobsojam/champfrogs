@@ -190,15 +190,4 @@
     box-shadow: 0 8px 28px rgba(96,165,250,0.4);
   }
 
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-    border: 0;
-  }
 </style>

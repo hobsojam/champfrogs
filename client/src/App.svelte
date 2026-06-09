@@ -96,6 +96,26 @@
     if (!session) return false;
     return session.participants.some(p => p.role === otherRole);
   });
+
+  let phaseAnnouncement = $derived.by(() => {
+    if (!session || !myRole) return '';
+    switch (session.phase) {
+      case 'subject_arrange':
+        return myRole === 'subject'
+          ? 'Your turn: arrange your cards from least to most important.'
+          : 'Waiting — the subject is arranging their cards.';
+      case 'interviewer_arrange':
+        return myRole === 'interviewer'
+          ? 'Your turn: arrange your cards from least to most important.'
+          : 'Waiting — the interviewer is arranging their cards.';
+      case 'reveal':
+        return 'Both arrangements are now revealed. Discuss the differences.';
+      case 'phase2':
+        return 'Phase 2: drag cards up to show realised motivators, down to show prevented ones.';
+      default:
+        return '';
+    }
+  });
 </script>
 
 <svelte:window onresize={computeCardDims} />
@@ -113,6 +133,8 @@
   </header>
 
   <main>
+    <div class="sr-only" aria-live="polite" aria-atomic="true">{phaseAnnouncement}</div>
+
     {#if page === 'home'}
       <JoinForm onJoin={handleJoin} />
 
@@ -138,8 +160,8 @@
       {#if myRole === 'subject'}
         <div class="arrange-view">
           <div class="arrange-header">
-            <span class="axis-label">← Less Important &nbsp;·&nbsp; More Important →</span>
-            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done ✓</button>
+            <span class="axis-label"><span aria-hidden="true">←</span> Less Important &nbsp;·&nbsp; More Important <span aria-hidden="true">→</span></span>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done <span aria-hidden="true">✓</span></button>
           </div>
           {#if localOrder}
             <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
@@ -158,8 +180,8 @@
       {#if myRole === 'interviewer'}
         <div class="arrange-view">
           <div class="arrange-header">
-            <span class="axis-label">← Less Important &nbsp;·&nbsp; More Important →</span>
-            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done ✓</button>
+            <span class="axis-label"><span aria-hidden="true">←</span> Less Important &nbsp;·&nbsp; More Important <span aria-hidden="true">→</span></span>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done <span aria-hidden="true">✓</span></button>
           </div>
           {#if localOrder}
             <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
@@ -207,6 +229,18 @@
     outline-offset: 2px;
   }
 
+  :global(.sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   :global(body) {
     background: #0f172a;
     color: #e2e8f0;
@@ -251,7 +285,7 @@
   .leave-btn {
     padding: 5px 12px;
     background: #1e293b;
-    border: 1px solid #334155;
+    border: 1px solid #64748b;
     border-radius: 6px;
     color: #94a3b8;
     font-size: 12px;

@@ -65,7 +65,7 @@
 </script>
 
 <div class="container">
-  <div class="axis-label top">▲ Realised</div>
+  <div class="axis-label top"><span aria-hidden="true">▲</span> Realised</div>
 
   <div class="board" bind:this={boardEl}>
     <div class="midline"></div>
@@ -124,11 +124,11 @@
   </div>
 
   <div class="axis-row">
-    <span class="axis-x">← Less Important</span>
-    <span class="axis-x">More Important →</span>
+    <span class="axis-x"><span aria-hidden="true">←</span> Less Important</span>
+    <span class="axis-x">More Important <span aria-hidden="true">→</span></span>
   </div>
 
-  <div class="axis-label bottom">Prevented / Not Realised ▼</div>
+  <div class="axis-label bottom">Prevented / Not Realised <span aria-hidden="true">▼</span></div>
 
   <div class="controls">
     <label class="toggle">
@@ -139,7 +139,7 @@
       Show interviewer's cards
     </label>
     <div class="btn-group">
-      <button class="btn-secondary" onclick={onBack}>← Back to Reveal</button>
+      <button class="btn-secondary" onclick={onBack}><span aria-hidden="true">←</span> Back to Reveal</button>
       <button class="btn-secondary" onclick={onReset}>New Session</button>
     </div>
   </div>
@@ -276,7 +276,13 @@
     flex-shrink: 0;
   }
 
-  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
 
   .track {
     position: absolute;
