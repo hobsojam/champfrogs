@@ -70,7 +70,7 @@
 
   .desc {
     font-size: 8.5px;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.75);
     line-height: 1.3;
   }
 </style>

@@ -10,9 +10,11 @@ Each player independently drags the 10 CHAMPFROGS cards into order from left (le
 
 **Phase 2 — Realisation**
 
-The subject's cards are placed on a 2D board. The x-axis preserves their Phase 1 importance ranking. The y-axis is free: drag cards up (realised) or down (prevented by the role). A toggle reveals the interviewer's cards in the same space, allowing both perspectives to be compared and adjusted during discussion.
+The subject's cards are placed on a 2D board. The x-axis preserves their Phase 1 importance ranking. The y-axis is free: drag cards up (realised) or down (prevented by the role). A toggle reveals the interviewer's cards in the same space — both sets remain draggable, allowing either participant to adjust positions as the discussion develops.
 
 ## Running locally
+
+**Single machine (two browser windows):**
 
 ```bash
 # Install dependencies
@@ -26,17 +28,30 @@ cd server && npm start
 cd client && npm run dev
 ```
 
-Open `http://localhost:5173` in two browser windows (or on two devices on the same network, replacing localhost with your machine's IP).
+Open `http://localhost:5173` in two browser windows. One player creates a session and shares the 4-letter code. Both players choose their role (Subject / Interviewer) before joining.
 
-One player creates a session and shares the 4-letter code. Both players choose their role (Subject / Interviewer) before joining.
+**Two devices on the same network:**
 
-## Running with Docker
+The Vite dev server only proxies from the local machine, so use the Docker setup for two-device testing:
 
 ```bash
 docker compose up --build
 ```
 
-Open `http://localhost:3000` on both devices.
+Open `http://<your-machine-ip>:3000` on both devices.
+
+## Testing
+
+Run the end-to-end smoke test against a running server:
+
+```bash
+cd server && npm start         # in one terminal
+node smoke.js                  # in another
+```
+
+This runs 28 checks covering the full session lifecycle: HTTP API, WebSocket flow, phase transitions, role-based state sanitization, Y-position updates, interviewer card toggle, reset, and invalid-order rejection.
+
+Note: the smoke test covers the server protocol only. UI drag-and-drop requires manual verification in a browser.
 
 ## Deploying
 
@@ -60,6 +75,14 @@ Set the `PORT` environment variable if the platform requires it (most do this au
 | `WS_CONNECTION_LIMIT_PER_IP` | 10 | Max concurrent WebSocket connections per IP |
 | `API_RATE_LIMIT_MAX` | 100 | API requests per 15 minutes |
 | `SESSION_RATE_LIMIT_MAX` | 20 | Session creations per hour |
+
+## Device requirements
+
+The app is designed for laptops and tablets (768px+ wide). It does not work on phones.
+
+Phase 1 requires 10 cards to be arranged side-by-side in a single row. Even at minimum card size this needs roughly 660px of horizontal space — narrower viewports overflow with no scroll. Phase 2 uses fixed-size cards at percentage positions across the board width, so edge cards are clipped on narrow screens.
+
+Both participants should use a laptop or tablet.
 
 ## The CHAMPFROGS motivators
 

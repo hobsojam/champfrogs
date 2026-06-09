@@ -87,18 +87,20 @@
         <button
           class="role-btn"
           class:active={role === 'subject'}
+          aria-pressed={role === 'subject'}
           onclick={() => role = 'subject'}
         >
-          <span class="role-icon">🙋</span>
+          <span class="role-icon" aria-hidden="true">🙋</span>
           <span class="role-name">Subject</span>
           <span class="role-desc">The person being assessed</span>
         </button>
         <button
           class="role-btn"
           class:active={role === 'interviewer'}
+          aria-pressed={role === 'interviewer'}
           onclick={() => role = 'interviewer'}
         >
-          <span class="role-icon">🎙️</span>
+          <span class="role-icon" aria-hidden="true">🎙️</span>
           <span class="role-name">Interviewer</span>
           <span class="role-desc">The facilitator / coach</span>
         </button>
@@ -161,8 +163,8 @@
   }
 
   .btn-primary:active, .btn-secondary:active { transform: scale(0.97); }
-  .btn-primary { background: #3b82f6; color: white; }
-  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-primary { background: #2563eb; color: white; }
+  .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-secondary { background: #334155; color: #e2e8f0; }
   .btn-secondary:hover { background: #475569; }
@@ -178,7 +180,7 @@
   label {
     font-size: 12px;
     font-weight: 600;
-    color: #64748b;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -228,7 +230,7 @@
 
   .role-icon { font-size: 22px; }
   .role-name { font-size: 13px; font-weight: 700; }
-  .role-desc { font-size: 11px; color: #64748b; }
+  .role-desc { font-size: 11px; color: #8b9db5; }
 
   .code-display {
     display: flex;
@@ -244,7 +246,7 @@
   .code-label {
     font-size: 11px;
     font-weight: 600;
-    color: #64748b;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -258,7 +260,7 @@
 
   .code-hint {
     font-size: 12px;
-    color: #475569;
+    color: #8b9db5;
   }
 
   .error {

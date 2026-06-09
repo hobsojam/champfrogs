@@ -54,7 +54,7 @@
   .label {
     font-size: 11px;
     font-weight: 700;
-    color: #64748b;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
@@ -83,12 +83,12 @@
 
   .hint {
     font-size: 12px;
-    color: #64748b;
+    color: #8b9db5;
   }
 
   .btn-primary {
     padding: 10px 20px;
-    background: #3b82f6;
+    background: #2563eb;
     color: white;
     border: none;
     border-radius: 8px;
@@ -97,6 +97,6 @@
     cursor: pointer;
   }
 
-  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:hover { background: #1d4ed8; }
   .btn-primary:active { transform: scale(0.97); }
 </style>

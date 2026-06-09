@@ -12,6 +12,24 @@
     return ((rank + 0.5) / total) * 100;
   }
 
+  function yValueText(y) {
+    if (y < 40) return `Realised, ${Math.round(50 - y)}% above midline`;
+    if (y > 60) return `Prevented, ${Math.round(y - 50)}% below midline`;
+    return 'Near midline';
+  }
+
+  function handleCardKey(e, cardId, who) {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const cur = who === 'subject' ? session.subject.yPositions[cardId] : session.interviewer.yPositions[cardId];
+      onUpdateY(who, cardId, Math.max(2, cur - 5));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const cur = who === 'subject' ? session.subject.yPositions[cardId] : session.interviewer.yPositions[cardId];
+      onUpdateY(who, cardId, Math.min(98, cur + 5));
+    }
+  }
+
   function startDrag(e, cardId, who) {
     e.preventDefault();
     const target = e.currentTarget;
@@ -59,7 +77,16 @@
       <div
         class="card-slot"
         style="left:{x}%;top:{y}%;background:{card.bg};border-color:{card.color}55;"
+        role="slider"
+        tabindex="0"
+        aria-label="{card.name} (subject)"
+        aria-orientation="vertical"
+        aria-valuenow={Math.round(y)}
+        aria-valuemin="2"
+        aria-valuemax="98"
+        aria-valuetext={yValueText(y)}
         onpointerdown={(e) => startDrag(e, cardId, 'subject')}
+        onkeydown={(e) => handleCardKey(e, cardId, 'subject')}
       >
         <span class="badge-dot" style="background:{card.color}">S</span>
         <div class="letter" style="color:{card.color}">{card.id}</div>
@@ -76,7 +103,16 @@
         <div
           class="card-slot interviewer"
           style="left:{x}%;top:{y}%;background:{card.bg};border-color:{card.color}88;"
+          role="slider"
+          tabindex="0"
+          aria-label="{card.name} (interviewer)"
+          aria-orientation="vertical"
+          aria-valuenow={Math.round(y)}
+          aria-valuemin="2"
+          aria-valuemax="98"
+          aria-valuetext={yValueText(y)}
           onpointerdown={(e) => startDrag(e, cardId, 'interviewer')}
+          onkeydown={(e) => handleCardKey(e, cardId, 'interviewer')}
         >
           <span class="badge-dot" style="background:{card.color}">I</span>
           <div class="letter" style="color:{card.color}">{card.id}</div>
@@ -121,7 +157,7 @@
     text-align: center;
     font-size: 10px;
     font-weight: 700;
-    color: #475569;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     padding: 3px 0;
@@ -163,6 +199,7 @@
 
   .card-slot:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
   .card-slot:active { cursor: grabbing; }
+  .card-slot:focus-visible { outline: 2px solid #60a5fa; outline-offset: 3px; }
   .card-slot.interviewer { opacity: 0.65; }
 
   .badge-dot {
@@ -195,7 +232,7 @@
 
   .desc {
     font-size: 8px;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255,255,255,0.75);
     line-height: 1.3;
   }
 
@@ -205,7 +242,7 @@
     padding: 2px 16px;
     font-size: 9px;
     font-weight: 700;
-    color: #334155;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     flex-shrink: 0;

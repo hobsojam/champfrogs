@@ -202,6 +202,11 @@
 <style>
   :global(*, *::before, *::after) { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :global(:focus-visible) {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+  }
+
   :global(body) {
     background: #0f172a;
     color: #e2e8f0;
@@ -234,14 +239,14 @@
 
   .badge {
     padding: 2px 10px;
-    background: #3b82f6;
+    background: #2563eb;
     color: white;
     border-radius: 99px;
     font-size: 11px;
     font-weight: 600;
   }
 
-  .session-id { font-size: 12px; color: #475569; margin-left: auto; }
+  .session-id { font-size: 12px; color: #8b9db5; margin-left: auto; }
 
   .leave-btn {
     padding: 5px 12px;
@@ -277,7 +282,7 @@
 
   h2 { font-size: 24px; font-weight: 700; }
   p { color: #94a3b8; max-width: 380px; line-height: 1.6; font-size: 14px; }
-  .muted { color: #475569; }
+  .muted { color: #8b9db5; }
   .error { color: #f87171; }
 
   .arrange-view {
@@ -300,14 +305,14 @@
   .axis-label {
     font-size: 11px;
     font-weight: 600;
-    color: #475569;
+    color: #8b9db5;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
   .btn-primary {
     padding: 9px 20px;
-    background: #3b82f6;
+    background: #2563eb;
     color: white;
     border: none;
     border-radius: 8px;
@@ -316,7 +321,7 @@
     cursor: pointer;
   }
 
-  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-primary:active:not(:disabled) { transform: scale(0.97); }
 
