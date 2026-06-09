@@ -6,8 +6,8 @@
 </script>
 
 <div class="reveal">
-  <div class="section">
-    <div class="label">Interviewer</div>
+  <div class="section" role="group" aria-labelledby="label-interviewer">
+    <div class="label" id="label-interviewer">Interviewer</div>
     <div class="row">
       {#each interviewerOrder as cardId (cardId)}
         <MotivatorCard card={cardById(cardId)} width={cardWidth} height={cardHeight} />
@@ -15,10 +15,10 @@
     </div>
   </div>
 
-  <div class="divider"></div>
+  <div class="divider" aria-hidden="true"></div>
 
-  <div class="section">
-    <div class="label">Subject</div>
+  <div class="section" role="group" aria-labelledby="label-subject">
+    <div class="label" id="label-subject">Subject</div>
     <div class="row">
       {#each subjectOrder as cardId (cardId)}
         <MotivatorCard card={cardById(cardId)} width={cardWidth} height={cardHeight} />
@@ -29,7 +29,7 @@
 
 <div class="controls">
   <span class="hint">Discuss the differences, then move to Phase 2</span>
-  <button class="btn-primary" onclick={onAdvance}>Phase 2 — Realisation →</button>
+  <button class="btn-primary" onclick={onAdvance}>Phase 2 — Realisation <span aria-hidden="true">→</span></button>
 </div>
 
 <style>
