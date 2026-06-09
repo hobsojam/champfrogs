@@ -1,11 +1,14 @@
 <script>
   let { onJoin } = $props();
 
-  let mode = $state('home'); // 'home' | 'create' | 'join'
-  let codeInput = $state('');
+  const urlCode = new URLSearchParams(window.location.search).get('session');
+
+  let mode = $state(urlCode ? 'join' : 'home');
+  let codeInput = $state(urlCode ? urlCode.toUpperCase().slice(0, 4) : '');
   let role = $state('subject');
   let error = $state('');
   let loading = $state(false);
+  let copied = $state(false);
 
   async function handleCreate() {
     loading = true;
@@ -16,6 +19,7 @@
       const { id } = await res.json();
       codeInput = id;
       mode = 'join';
+      history.replaceState(null, '', `?session=${id}`);
     } catch (e) {
       error = e.message;
     } finally {
@@ -36,11 +40,22 @@
         error = `The ${role} role is already taken in this session`;
         return;
       }
+      history.replaceState(null, '', `?session=${code}`);
       onJoin(code, role);
     } catch (e) {
       error = e.message;
     } finally {
       loading = false;
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      copied = true;
+      setTimeout(() => { copied = false; }, 2000);
+    } catch {
+      // clipboard unavailable — silently ignore, user can copy the URL manually
     }
   }
 </script>
@@ -64,7 +79,10 @@
       <div class="code-display">
         <span class="code-label">Session code</span>
         <span class="code">{codeInput}</span>
-        <span class="code-hint">Share this code with the other participant</span>
+        <span class="code-hint">Share the code or the link below</span>
+        <button class="btn-copy" onclick={copyLink}>
+          {copied ? 'Copied!' : 'Copy link'}
+        </button>
       </div>
     {:else}
       <div class="field">
@@ -242,6 +260,20 @@
     border-radius: 12px;
     border: 1.5px solid #64748b;
   }
+
+  .btn-copy {
+    padding: 6px 16px;
+    background: #1e293b;
+    border: 1px solid #64748b;
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .btn-copy:hover { background: #334155; color: #e2e8f0; }
 
   .code-label {
     font-size: 11px;
