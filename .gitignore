@@ -7,5 +7,4 @@ server/public/
 *.local
 .claude/
 .codex/
-AGENTS.md
 .mcp.json
