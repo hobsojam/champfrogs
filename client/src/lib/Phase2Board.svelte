@@ -1,7 +1,7 @@
 <script>
   import { cardById } from './cards.js';
 
-  let { session, onUpdateY, onToggleInterviewer, onBack, onReset } = $props();
+  let { session, myRole, onUpdateY, onToggleInterviewer, onBack, onReset } = $props();
 
   let boardEl = $state(null);
 
@@ -80,15 +80,15 @@
         class="card-slot"
         style="left:{x}%;top:{y}%;background:{card.bg};border-color:{card.color}55;"
         role="slider"
-        tabindex="0"
+        tabindex={myRole === 'subject' ? 0 : -1}
         aria-label="{card.name} (subject)"
         aria-orientation="vertical"
         aria-valuenow={Math.round(y)}
         aria-valuemin="2"
         aria-valuemax="98"
         aria-valuetext={yValueText(y)}
-        onpointerdown={(e) => startDrag(e, cardId, 'subject')}
-        onkeydown={(e) => handleCardKey(e, cardId, 'subject')}
+        onpointerdown={myRole === 'subject' ? (e) => startDrag(e, cardId, 'subject') : null}
+        onkeydown={myRole === 'subject' ? (e) => handleCardKey(e, cardId, 'subject') : null}
       >
         <span class="badge-dot" style="background:{card.color}">S</span>
         <div class="letter" style="color:{card.color}">{card.id}</div>
@@ -106,15 +106,15 @@
           class="card-slot interviewer"
           style="left:{x}%;top:{y}%;background:{card.bg};border-color:{card.color}88;"
           role="slider"
-          tabindex="0"
+          tabindex={myRole === 'interviewer' ? 0 : -1}
           aria-label="{card.name} (interviewer)"
           aria-orientation="vertical"
           aria-valuenow={Math.round(y)}
           aria-valuemin="2"
           aria-valuemax="98"
           aria-valuetext={yValueText(y)}
-          onpointerdown={(e) => startDrag(e, cardId, 'interviewer')}
-          onkeydown={(e) => handleCardKey(e, cardId, 'interviewer')}
+          onpointerdown={myRole === 'interviewer' ? (e) => startDrag(e, cardId, 'interviewer') : null}
+          onkeydown={myRole === 'interviewer' ? (e) => handleCardKey(e, cardId, 'interviewer') : null}
         >
           <span class="badge-dot" style="background:{card.color}">I</span>
           <div class="letter" style="color:{card.color}">{card.id}</div>

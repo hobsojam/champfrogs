@@ -252,6 +252,7 @@
     {:else if session.phase === 'phase2'}
       <Phase2Board
         {session}
+        {myRole}
         onUpdateY={(who, cardId, y) => send({ type: 'update_y', who, cardId, y })}
         onToggleInterviewer={(show) => send({ type: 'toggle_interviewer', show })}
         onBack={session.mode === 'solo' ? null : () => send({ type: 'set_phase', phase: 'reveal' })}
