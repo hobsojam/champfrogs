@@ -133,15 +133,21 @@
   <div class="axis-label bottom">Prevented / Not Realised <span aria-hidden="true">▼</span></div>
 
   <div class="controls">
-    <label class="toggle">
-      <span class="switch">
-        <input type="checkbox" checked={session.showInterviewer} onchange={(e) => onToggleInterviewer(e.target.checked)} />
-        <span class="track"></span>
-      </span>
-      Show interviewer's cards
-    </label>
+    {#if session.mode !== 'solo'}
+      <label class="toggle">
+        <span class="switch">
+          <input type="checkbox" checked={session.showInterviewer} onchange={(e) => onToggleInterviewer(e.target.checked)} />
+          <span class="track"></span>
+        </span>
+        Show interviewer's cards
+      </label>
+    {:else}
+      <span></span>
+    {/if}
     <div class="btn-group">
-      <button class="btn-secondary" onclick={onBack}><span aria-hidden="true">←</span> Back to Reveal</button>
+      {#if onBack}
+        <button class="btn-secondary" onclick={onBack}><span aria-hidden="true">←</span> Back to Reveal</button>
+      {/if}
       <button class="btn-secondary" onclick={onReset}>New Session</button>
     </div>
   </div>

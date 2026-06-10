@@ -11,13 +11,18 @@
   let loading = $state(false);
   let copied = $state(false);
 
-  async function handleCreate() {
+  async function handleCreate(sessionMode = 'paired') {
     loading = true;
     error = '';
     try {
-      const res = await fetch('/api/sessions', { method: 'POST' });
+      const res = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: sessionMode }) });
       if (!res.ok) throw new Error('Failed to create session');
       const { id } = await res.json();
+      if (sessionMode === 'solo') {
+        history.replaceState(null, '', `?session=${id}`);
+        onJoin(id, 'subject');
+        return;
+      }
       codeInput = id;
       createdCode = id;
       mode = 'join';
@@ -65,13 +70,20 @@
 <div class="screen">
   {#if mode === 'home'}
     <h2>Moving Motivators</h2>
-    <p>A two-player CHAMPFROGS exercise for exploring motivation and role fit.</p>
-    <div class="btn-row">
-      <button class="btn-primary" onclick={() => { handleCreate(); }} disabled={loading}>
-        {loading ? 'Creating…' : 'Create Session'}
+    <p>Explore motivation and role fit using the CHAMPFROGS cards.</p>
+    <div class="mode-cards">
+      <button class="mode-card" onclick={() => handleCreate('solo')} disabled={loading}>
+        <span class="mode-icon" aria-hidden="true">🙋</span>
+        <span class="mode-name">Solo</span>
+        <span class="mode-desc">Just you — arrange and reflect on your own motivators</span>
       </button>
-      <button class="btn-secondary" onclick={() => mode = 'join'}>Join Session</button>
+      <button class="mode-card" onclick={() => handleCreate('paired')} disabled={loading}>
+        <span class="mode-icon" aria-hidden="true">🤝</span>
+        <span class="mode-name">Paired</span>
+        <span class="mode-desc">Subject + interviewer arrange independently, then compare</span>
+      </button>
     </div>
+    <button class="btn-secondary" onclick={() => mode = 'join'}>Join existing session</button>
     {#if error}<p class="error">{error}</p>{/if}
 
   {:else if mode === 'join'}
@@ -164,6 +176,40 @@
     line-height: 1.6;
     font-size: 14px;
   }
+
+  .mode-cards {
+    display: flex;
+    gap: 12px;
+  }
+
+  .mode-card {
+    flex: 1;
+    min-width: 150px;
+    padding: 16px 12px;
+    background: #1e293b;
+    border: 1.5px solid #64748b;
+    border-radius: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .mode-card:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #e2e8f0;
+    background: #172033;
+  }
+
+  .mode-card:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .mode-icon { font-size: 26px; }
+  .mode-name { font-size: 14px; font-weight: 700; color: #e2e8f0; }
+  .mode-desc { font-size: 11px; color: #8b9db5; line-height: 1.4; }
 
   .btn-row {
     display: flex;

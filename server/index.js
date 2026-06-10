@@ -55,7 +55,8 @@ const staticFallbackLimiter = rateLimit({
 app.use('/api', apiLimiter);
 
 app.post('/api/sessions', createSessionLimiter, (req, res) => {
-  const session = createSession();
+  const mode = req.body?.mode === 'solo' ? 'solo' : 'paired';
+  const session = createSession(mode);
   res.json({ id: session.id });
 });
 
