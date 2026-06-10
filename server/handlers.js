@@ -19,6 +19,7 @@ function send(ws, payload) {
 }
 
 function sendError(ws, code, message) {
+  console.warn(`[WS] error → ${ws.participantId ?? 'unknown'} (${ws.role ?? 'no role'}): ${code} — ${message}`);
   send(ws, { type: 'error', code, message });
   return false;
 }
@@ -35,6 +36,7 @@ function handleJoin(ws, session, data) {
 
   const existing = session.participants.find(p => p.id === ws.participantId);
   if (existing && existing.role === role) {
+    console.log(`[WS] ${ws.participantId} rejoined ${session.id} as ${role}`);
     ws.role = role;
     return true;
   }
@@ -46,6 +48,7 @@ function handleJoin(ws, session, data) {
 
   addParticipant(session.id, { id: ws.participantId, role });
   ws.role = role;
+  console.log(`[WS] ${ws.participantId} joined ${session.id} as ${role}`);
 
   if (session.phase === 'waiting' && role === 'subject') {
     setPhase(session.id, 'subject_arrange');
@@ -67,6 +70,7 @@ function handleFinishArrange(ws, session, data) {
       return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ORDER, 'Order must contain all 10 card IDs exactly once');
     }
     setSubjectOrder(session.id, data.order);
+    console.log(`[SESSION] ${session.id} subject arranged: ${data.order.join('')}`);
     setPhase(session.id, session.mode === 'solo' ? 'phase2' : 'interviewer_arrange');
     return true;
   }
@@ -76,6 +80,7 @@ function handleFinishArrange(ws, session, data) {
       return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ORDER, 'Order must contain all 10 card IDs exactly once');
     }
     setInterviewerOrder(session.id, data.order);
+    console.log(`[SESSION] ${session.id} interviewer arranged: ${data.order.join('')}`);
     setPhase(session.id, 'reveal');
     return true;
   }
@@ -118,11 +123,14 @@ function handleUpdateY(ws, session, data) {
 }
 
 function handleToggleInterviewer(ws, session, data) {
-  setShowInterviewer(session.id, !!data.show);
+  const show = !!data.show;
+  console.log(`[SESSION] ${session.id} interviewer overlay: ${show ? 'shown' : 'hidden'}`);
+  setShowInterviewer(session.id, show);
   return true;
 }
 
 function handleReset(ws, session) {
+  console.log(`[SESSION] ${session.id} reset by ${ws.participantId} (${ws.role})`);
   resetSession(session.id);
   return true;
 }

@@ -39,6 +39,7 @@ function createSession(mode = 'paired') {
     lastActivityAt: Date.now(),
   };
   sessions.set(id, session);
+  console.log(`[SESSION] ${id} created`);
   return session;
 }
 
@@ -76,6 +77,7 @@ function removeParticipant(sessionId, participantId) {
 function setPhase(sessionId, phase) {
   const session = sessions.get(sessionId);
   if (!session) return;
+  console.log(`[SESSION] ${sessionId} phase: ${session.phase} → ${phase}`);
   session.phase = phase;
   markActivity(session);
 }
