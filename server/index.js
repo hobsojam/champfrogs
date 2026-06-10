@@ -160,6 +160,7 @@ function handleConnection(ws, req) {
   }
 
   incrementWsConnectionCount(clientIp);
+  console.log(`[WS] ${ws.participantId} connected to ${sessionId}${existing ? ' (reconnect)' : ''}`);
 
   if (!sessionSockets.has(sessionId)) {
     sessionSockets.set(sessionId, new Set());
@@ -195,7 +196,9 @@ function handleConnection(ws, req) {
         return;
       }
 
-      console.log(`[WS] ${ws.participantId} (${ws.role}) in ${sessionId}: ${data.type}`);
+      if (data.type !== 'update_y') {
+        console.log(`[WS] ${ws.participantId} (${ws.role ?? 'no role'}) in ${sessionId}: ${data.type}`);
+      }
 
       const stateChanged = await handleMessage(ws, currentSession, data);
       if (!stateChanged) return;
@@ -212,6 +215,7 @@ function handleConnection(ws, req) {
   });
 
   ws.on('close', () => {
+    console.log(`[WS] ${ws.participantId} (${ws.role ?? 'no role'}) disconnected from ${sessionId}`);
     decrementWsConnectionCount(ws.clientIp);
     const sockets = sessionSockets.get(sessionId);
     if (sockets) {
@@ -241,6 +245,8 @@ const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
 function sweepInactiveSessions(sockets, ttlMs = SESSION_TTL_MS) {
   const cutoff = Date.now() - ttlMs;
+  let swept = 0;
+  let remaining = 0;
   for (const session of getAllSessions()) {
     if (session.lastActivityAt < cutoff) {
       const sessionWs = sockets.get(session.id);
@@ -254,7 +260,13 @@ function sweepInactiveSessions(sockets, ttlMs = SESSION_TTL_MS) {
         sockets.delete(session.id);
       }
       deleteSession(session.id);
+      swept++;
+    } else {
+      remaining++;
     }
+  }
+  if (swept > 0) {
+    console.log(`[SWEEP] removed ${swept} inactive session(s), ${remaining} active`);
   }
 }
 
