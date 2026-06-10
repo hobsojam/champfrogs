@@ -5,6 +5,7 @@
 
   let mode = $state(urlCode ? 'join' : 'home');
   let codeInput = $state(urlCode ? urlCode.toUpperCase().slice(0, 4) : '');
+  let createdCode = $state(urlCode ? urlCode.toUpperCase().slice(0, 4) : null);
   let role = $state('subject');
   let error = $state('');
   let loading = $state(false);
@@ -18,6 +19,7 @@
       if (!res.ok) throw new Error('Failed to create session');
       const { id } = await res.json();
       codeInput = id;
+      createdCode = id;
       mode = 'join';
       history.replaceState(null, '', `?session=${id}`);
     } catch (e) {
@@ -73,9 +75,9 @@
     {#if error}<p class="error">{error}</p>{/if}
 
   {:else if mode === 'join'}
-    <h2>{codeInput ? 'Session created' : 'Join Session'}</h2>
+    <h2>{createdCode ? 'Session created' : 'Join Session'}</h2>
 
-    {#if codeInput}
+    {#if createdCode}
       <div class="code-display">
         <span class="code-label">Session code</span>
         <span class="code">{codeInput}</span>
@@ -128,7 +130,7 @@
     {#if error}<p class="error">{error}</p>{/if}
 
     <div class="btn-row">
-      <button class="btn-secondary" onclick={() => { mode = 'home'; codeInput = ''; error = ''; }}>
+      <button class="btn-secondary" onclick={() => { mode = 'home'; codeInput = ''; createdCode = null; error = ''; }}>
         ← Back
       </button>
       <button class="btn-primary" onclick={handleJoin} disabled={loading || !codeInput.trim()}>
