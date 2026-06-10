@@ -253,6 +253,9 @@ async function run() {
   const { ws: rejoinSubWs, messages: rejoinSubMsgs } = await openWs(sessionId, 'subject-id');
   await waitForState(rejoinSubMsgs, s => s.phase === 'subject_arrange');
 
+  // Join first — auth guard requires ws.role before reset is allowed
+  await sendAndWait(rejoinSubWs, rejoinSubMsgs, { type: 'join', role: 'subject' }, s => s.phase === 'subject_arrange');
+
   // Reset the session back to waiting so we can do a clean re-join
   await sendAndWait(rejoinSubWs, rejoinSubMsgs, { type: 'reset' }, s => s.phase === 'waiting');
 
