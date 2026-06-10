@@ -5,7 +5,7 @@ const { WebSocketServer } = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
 const { WEBSOCKET_ERRORS, WEBSOCKET_MESSAGE_ERRORS } = require('../shared/errors.json');
-const { createSession, getSession, getAllSessions, removeParticipant, deleteSession } = require('./sessions');
+const { createSession, getSession, getAllSessions, deleteSession } = require('./sessions');
 const { handleMessage } = require('./handlers');
 const { sanitizeSession } = require('./sanitize');
 
@@ -85,9 +85,12 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 function broadcastState(session, sockets) {
+  const connectedRoles = [...sockets]
+    .filter(ws => ws.readyState === ws.OPEN && ws.role)
+    .map(ws => ws.role);
   for (const ws of sockets) {
     if (ws.readyState === ws.OPEN) {
-      const sanitized = sanitizeSession(session, ws.role || null);
+      const sanitized = sanitizeSession(session, ws.role || null, connectedRoles);
       ws.send(JSON.stringify({ type: 'state', session: sanitized }));
     }
   }
@@ -167,7 +170,10 @@ function handleConnection(ws, req) {
   }
   sessionSockets.get(sessionId).add(ws);
 
-  ws.send(JSON.stringify({ type: 'state', session: sanitizeSession(session, ws.role) }));
+  const initialConnectedRoles = [...sessionSockets.get(sessionId)]
+    .filter(s => s.readyState === s.OPEN && s.role)
+    .map(s => s.role);
+  ws.send(JSON.stringify({ type: 'state', session: sanitizeSession(session, ws.role, initialConnectedRoles) }));
 
   let messageChain = Promise.resolve();
 
@@ -224,7 +230,6 @@ function handleConnection(ws, req) {
     }
     const currentSession = getSession(sessionId);
     if (currentSession) {
-      removeParticipant(sessionId, ws.participantId);
       const remaining = sessionSockets.get(sessionId);
       if (remaining && remaining.size > 0) {
         broadcastState(getSession(sessionId), remaining);
