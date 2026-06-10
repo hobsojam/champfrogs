@@ -62,11 +62,13 @@ app.post('/api/sessions', createSessionLimiter, (req, res) => {
 app.get('/api/sessions/:id', (req, res) => {
   const session = getSession(req.params.id.toUpperCase());
   if (!session) return res.status(404).json({ error: 'Session not found' });
+  const activeSockets = sessionSockets.get(session.id) || new Set();
+  const roles = [...activeSockets].filter(ws => ws.readyState === 1).map(ws => ws.role).filter(Boolean);
   res.json({
     id: session.id,
     phase: session.phase,
     participantCount: session.participants.length,
-    roles: session.participants.map(p => p.role),
+    roles,
   });
 });
 
