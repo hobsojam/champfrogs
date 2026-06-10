@@ -5,8 +5,14 @@
   import RevealView from './lib/RevealView.svelte';
   import Phase2Board from './lib/Phase2Board.svelte';
 
-  let page = $state('home'); // 'home' | 'session'
-  let myRole = $state(null);
+  // Bug 5: restore role + page from sessionStorage on refresh
+  const ROLE_KEY = 'champfrogs_role';
+  const _urlSession = new URLSearchParams(window.location.search).get('session')?.toUpperCase();
+  const _savedRole = sessionStorage.getItem(ROLE_KEY);
+  const _autoRestore = Boolean(_urlSession && _savedRole);
+
+  let page = $state(_autoRestore ? 'session' : 'home'); // 'home' | 'session'
+  let myRole = $state(_autoRestore ? _savedRole : null);
   let localOrder = $state(null); // draft order during arrange phase
   let cardWidth = $state(90);
   let cardHeight = $state(130);
@@ -32,16 +38,31 @@
     computeCardDims();
   });
 
+  // Bug 5: connect on mount when auto-restoring (no reactive deps → runs once)
+  $effect(() => {
+    if (_autoRestore) connect(_urlSession);
+  });
+
   function handleJoin(sessionId, role) {
     myRole = role;
     page = 'session';
+    sessionStorage.setItem(ROLE_KEY, role); // Bug 5: persist role
     connect(sessionId);
     // After connecting, send role assignment
     // We need to wait for connection — send after first state arrives
   }
 
-  // When we get our first state, send the join message
-  let hasJoined = false;
+  // Bugs 1 & 2: hasJoined as $state so it can be reactively reset
+  let hasJoined = $state(false);
+
+  // Reset hasJoined whenever we're not in the participant list (covers reset + reconnect)
+  $effect(() => {
+    if (session && myRole && !session.participants.some(p => p.role === myRole)) {
+      hasJoined = false;
+    }
+  });
+
+  // When we get our first state (or after a reset/reconnect), send the join message
   $effect(() => {
     if (session && !hasJoined && myRole) {
       hasJoined = true;
@@ -49,19 +70,26 @@
     }
   });
 
+  // Bug 3: guard against re-seeding after submit
+  let arrangeSubmitted = $state(false);
+
   // Seed localOrder from server when we enter arrange phase
   $effect(() => {
     if (!session) return;
-    if (session.phase === 'subject_arrange' && myRole === 'subject' && session.subjectOrder && !localOrder) {
+    if (session.phase !== 'subject_arrange' && session.phase !== 'interviewer_arrange') {
+      arrangeSubmitted = false;
+    }
+    if (session.phase === 'subject_arrange' && myRole === 'subject' && session.subjectOrder && !localOrder && !arrangeSubmitted) {
       localOrder = [...session.subjectOrder];
     }
-    if (session.phase === 'interviewer_arrange' && myRole === 'interviewer' && session.interviewerOrder && !localOrder) {
+    if (session.phase === 'interviewer_arrange' && myRole === 'interviewer' && session.interviewerOrder && !localOrder && !arrangeSubmitted) {
       localOrder = [...session.interviewerOrder];
     }
   });
 
   function submitArrange() {
-    if (!localOrder) return;
+    if (!localOrder || arrangeSubmitted) return;
+    arrangeSubmitted = true; // Bug 3: prevent re-seed and double-submit
     send({ type: 'finish_arrange', order: localOrder });
     localOrder = null;
   }
@@ -72,6 +100,7 @@
     myRole = null;
     localOrder = null;
     hasJoined = false;
+    sessionStorage.removeItem(ROLE_KEY); // Bug 5: clear persisted role
     history.replaceState(null, '', '/');
   }
 
@@ -176,7 +205,7 @@
         <div class="arrange-view">
           <div class="arrange-header">
             <span class="axis-label"><span aria-hidden="true">←</span> Less Important &nbsp;·&nbsp; More Important <span aria-hidden="true">→</span></span>
-            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done <span aria-hidden="true">✓</span></button>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder || arrangeSubmitted}>Done <span aria-hidden="true">✓</span></button>
           </div>
           {#if localOrder}
             <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
@@ -196,7 +225,7 @@
         <div class="arrange-view">
           <div class="arrange-header">
             <span class="axis-label"><span aria-hidden="true">←</span> Less Important &nbsp;·&nbsp; More Important <span aria-hidden="true">→</span></span>
-            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder}>Done <span aria-hidden="true">✓</span></button>
+            <button class="btn-primary" onclick={submitArrange} disabled={!localOrder || arrangeSubmitted}>Done <span aria-hidden="true">✓</span></button>
           </div>
           {#if localOrder}
             <ArrangeRow bind:order={localOrder} {cardWidth} {cardHeight} />
