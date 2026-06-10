@@ -2,8 +2,8 @@
 const http = require('node:http');
 const { WebSocket } = require('ws');
 
-const BASE = 'http://localhost:3000';
-const WS_BASE = 'ws://localhost:3000';
+const BASE = process.env.BASE_URL || 'http://localhost:3000';
+const WS_BASE = BASE.replace(/^http/, 'ws');
 
 let passed = 0;
 let failed = 0;
@@ -244,6 +244,64 @@ async function run() {
   assert(Array.isArray(soloAfterArrange.subject?.order), 'Solo: subject data present in phase2');
 
   soloWs.close();
+
+  // --- Post-reset re-join (paired) ---
+  console.log('\nPost-reset re-join:');
+  // sessionId is still the paired session; after the "invalid order" test it is in subject_arrange.
+  // We need a fresh reset so we can observe a clean re-join → subject_arrange transition.
+  // Re-open a fresh WS pair for this session (previous subWs/intWs were closed above).
+  const { ws: rejoinSubWs, messages: rejoinSubMsgs } = await openWs(sessionId, 'subject-id');
+  await waitForState(rejoinSubMsgs, s => s.phase === 'subject_arrange');
+
+  // Reset the session back to waiting so we can do a clean re-join
+  await sendAndWait(rejoinSubWs, rejoinSubMsgs, { type: 'reset' }, s => s.phase === 'waiting');
+
+  // Now re-join as subject → should advance to subject_arrange
+  const afterResetJoin = await sendAndWait(rejoinSubWs, rejoinSubMsgs,
+    { type: 'join', role: 'subject' },
+    s => s.phase === 'subject_arrange'
+  );
+  assert(afterResetJoin.phase === 'subject_arrange', 'Subject re-joins after reset → phase: subject_arrange');
+  assert(Array.isArray(afterResetJoin.subjectOrder) && afterResetJoin.subjectOrder.length === 10,
+    'Post-reset: subject sees their 10-card order again');
+
+  rejoinSubWs.close();
+
+  // --- WS reconnect during arrange ---
+  console.log('\nWS reconnect flow:');
+  // Create a fresh session for the reconnect test
+  const { body: rcBody } = await post('/api/sessions');
+  const rcSessionId = rcBody.id;
+
+  // Open WS as subject and join → subject_arrange
+  const { ws: rcWs1, messages: rcMsgs1 } = await openWs(rcSessionId, 'rc-subject-id');
+  await waitForState(rcMsgs1, s => s.phase === 'waiting');
+  assert(true, 'Reconnect: initial state received after reconnect');
+
+  await sendAndWait(rcWs1, rcMsgs1, { type: 'join', role: 'subject' }, s => s.phase === 'subject_arrange');
+
+  // Simulate a WS drop
+  rcWs1.close();
+  await new Promise(r => setTimeout(r, 200));
+
+  // Reconnect with the same participantId
+  const { ws: rcWs2, messages: rcMsgs2 } = await openWs(rcSessionId, 'rc-subject-id');
+  await waitForState(rcMsgs2, s => s.phase !== null);
+
+  const afterReconnectJoin = await sendAndWait(rcWs2, rcMsgs2,
+    { type: 'join', role: 'subject' },
+    s => s.phase === 'subject_arrange'
+  );
+  assert(afterReconnectJoin.phase === 'subject_arrange', 'Reconnect: subject can re-join after WS drop');
+
+  // Finish arrange after reconnect
+  const afterRcArrange = await sendAndWait(rcWs2, rcMsgs2,
+    { type: 'finish_arrange', order: CARDS },
+    s => s.phase === 'interviewer_arrange'
+  );
+  assert(afterRcArrange.phase === 'interviewer_arrange', 'Reconnect: finish_arrange succeeds after reconnect');
+
+  rcWs2.close();
 
   // Summary
   console.log(`\n${passed + failed} checks: ${passed} passed, ${failed} failed`);
