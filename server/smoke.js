@@ -220,6 +220,31 @@ async function run() {
   subWs.close();
   intWs.close();
 
+  // --- Solo mode flow ---
+  console.log('\nSolo mode flow:');
+  const { body: soloBody } = await post('/api/sessions', { mode: 'solo' });
+  assert(typeof soloBody.id === 'string' && soloBody.id.length === 4, `Solo session created: "${soloBody.id}"`);
+
+  const { ws: soloWs, messages: soloMsgs } = await openWs(soloBody.id, 'solo-subject-id');
+  const soloInitial = await waitForState(soloMsgs, s => s.phase === 'waiting');
+  assert(soloInitial.mode === 'solo', 'Solo session has mode=solo');
+
+  const soloAfterJoin = await sendAndWait(soloWs, soloMsgs,
+    { type: 'join', role: 'subject' },
+    s => s.phase === 'subject_arrange'
+  );
+  assert(soloAfterJoin.phase === 'subject_arrange', 'Solo: phase → subject_arrange after subject joins');
+  assert(Array.isArray(soloAfterJoin.subjectOrder) && soloAfterJoin.subjectOrder.length === 10, 'Solo: subject sees their 10-card order');
+
+  const soloAfterArrange = await sendAndWait(soloWs, soloMsgs,
+    { type: 'finish_arrange', order: CARDS },
+    s => s.phase !== 'subject_arrange'
+  );
+  assert(soloAfterArrange.phase === 'phase2', 'Solo: finish_arrange goes directly to phase2 (skips interviewer_arrange)');
+  assert(Array.isArray(soloAfterArrange.subject?.order), 'Solo: subject data present in phase2');
+
+  soloWs.close();
+
   // Summary
   console.log(`\n${passed + failed} checks: ${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
