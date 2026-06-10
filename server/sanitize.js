@@ -1,6 +1,7 @@
 function sanitizeSession(session, role) {
   const base = {
     id: session.id,
+    mode: session.mode,
     phase: session.phase,
     participants: session.participants.map(p => ({ id: p.id, role: p.role })),
     showInterviewer: session.showInterviewer,

@@ -29,6 +29,10 @@ function handleJoin(ws, session, data) {
     return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Role must be subject or interviewer');
   }
 
+  if (session.mode === 'solo' && role === 'interviewer') {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Solo sessions do not have an interviewer');
+  }
+
   const existing = session.participants.find(p => p.id === ws.participantId);
   if (existing && existing.role === role) {
     ws.role = role;
@@ -63,7 +67,7 @@ function handleFinishArrange(ws, session, data) {
       return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ORDER, 'Order must contain all 10 card IDs exactly once');
     }
     setSubjectOrder(session.id, data.order);
-    setPhase(session.id, 'interviewer_arrange');
+    setPhase(session.id, session.mode === 'solo' ? 'phase2' : 'interviewer_arrange');
     return true;
   }
 

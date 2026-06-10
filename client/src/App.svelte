@@ -101,11 +101,11 @@
 
   let phaseAnnouncement = $derived.by(() => {
     if (!session || !myRole) return '';
+    const solo = session.mode === 'solo';
     switch (session.phase) {
       case 'subject_arrange':
-        return myRole === 'subject'
-          ? 'Your turn: arrange your cards from least to most important.'
-          : 'Waiting — the subject is arranging their cards.';
+        if (myRole === 'subject') return 'Your turn: arrange your cards from least to most important.';
+        return solo ? '' : 'Waiting — the subject is arranging their cards.';
       case 'interviewer_arrange':
         return myRole === 'interviewer'
           ? 'Your turn: arrange your cards from least to most important.'
@@ -113,7 +113,9 @@
       case 'reveal':
         return 'Both arrangements are now revealed. Discuss the differences.';
       case 'phase2':
-        return 'Phase 2: drag cards up to show realised motivators, down to show prevented ones.';
+        return solo
+          ? 'Drag cards up to show realised motivators, down to show prevented ones.'
+          : 'Phase 2: drag cards up to show realised motivators, down to show prevented ones.';
       default:
         return '';
     }
@@ -158,10 +160,14 @@
 
     {:else if session.phase === 'waiting'}
       <div class="screen">
-        <h2>Session {session.id}</h2>
-        <p>Waiting for participants to join…</p>
-        {#if !otherConnected}
-          <p class="muted">Share the code <strong>{session.id}</strong> with the {otherRole}.</p>
+        {#if session.mode === 'solo'}
+          <p class="muted">Starting…</p>
+        {:else}
+          <h2>Session {session.id}</h2>
+          <p>Waiting for participants to join…</p>
+          {#if !otherConnected}
+            <p class="muted">Share the code <strong>{session.id}</strong> with the {otherRole}.</p>
+          {/if}
         {/if}
       </div>
 
@@ -219,7 +225,7 @@
         {session}
         onUpdateY={(who, cardId, y) => send({ type: 'update_y', who, cardId, y })}
         onToggleInterviewer={(show) => send({ type: 'toggle_interviewer', show })}
-        onBack={() => send({ type: 'set_phase', phase: 'reveal' })}
+        onBack={session.mode === 'solo' ? null : () => send({ type: 'set_phase', phase: 'reveal' })}
         onReset={handleReset}
       />
     {/if}

@@ -20,10 +20,11 @@ function generateCode() {
   return code;
 }
 
-function createSession() {
+function createSession(mode = 'paired') {
   const id = generateCode();
   const session = {
     id,
+    mode,
     phase: 'waiting',
     participants: [],
     subject: {
