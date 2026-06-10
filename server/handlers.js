@@ -12,6 +12,10 @@ const {
 
 const VALID_ROLES = new Set(['subject', 'interviewer']);
 
+function requireJoined(ws) {
+  return ws.role !== null && ws.role !== undefined;
+}
+
 function send(ws, payload) {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(payload));
@@ -89,6 +93,9 @@ function handleFinishArrange(ws, session, data) {
 }
 
 function handleSetPhase(ws, session, data) {
+  if (!requireJoined(ws)) {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Must be joined to set phase');
+  }
   const allowed = new Set(['phase2', 'reveal']);
   if (!allowed.has(data.phase)) {
     return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_PHASE, 'Invalid phase transition');
@@ -104,12 +111,18 @@ function handleSetPhase(ws, session, data) {
 }
 
 function handleUpdateY(ws, session, data) {
+  if (!requireJoined(ws)) {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Must be joined to update Y positions');
+  }
   if (session.phase !== 'phase2') {
     return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.WRONG_PHASE, 'Y positions can only be updated in phase2');
   }
   const who = data.who;
   if (who !== 'subject' && who !== 'interviewer') {
     return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'who must be subject or interviewer');
+  }
+  if (ws.role !== who) {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Can only update your own Y positions');
   }
   if (!CARD_IDS.includes(data.cardId)) {
     return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_CARD_ID, 'Invalid card ID');
@@ -123,6 +136,9 @@ function handleUpdateY(ws, session, data) {
 }
 
 function handleToggleInterviewer(ws, session, data) {
+  if (!requireJoined(ws)) {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Must be joined to toggle interviewer overlay');
+  }
   const show = !!data.show;
   console.log(`[SESSION] ${session.id} interviewer overlay: ${show ? 'shown' : 'hidden'}`);
   setShowInterviewer(session.id, show);
@@ -130,6 +146,9 @@ function handleToggleInterviewer(ws, session, data) {
 }
 
 function handleReset(ws, session) {
+  if (!requireJoined(ws)) {
+    return sendError(ws, WEBSOCKET_MESSAGE_ERRORS.INVALID_ROLE, 'Must be joined to reset session');
+  }
   console.log(`[SESSION] ${session.id} reset by ${ws.participantId} (${ws.role})`);
   resetSession(session.id);
   return true;
