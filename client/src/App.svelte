@@ -125,7 +125,7 @@
 
   let otherConnected = $derived.by(() => {
     if (!session) return false;
-    return session.participants.some(p => p.role === otherRole);
+    return session.connectedRoles?.includes(otherRole) ?? false;
   });
 
   let phaseAnnouncement = $derived.by(() => {
