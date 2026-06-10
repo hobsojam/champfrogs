@@ -35,20 +35,19 @@
     const target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
 
-    let rafPending = false;
+    let lastSendTime = 0;
+    let lastY = null;
 
     function onMove(e) {
       if (!boardEl) return;
       const rect = boardEl.getBoundingClientRect();
       const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
       target.style.top = `${y}%`;
+      lastY = y;
 
-      if (!rafPending) {
-        rafPending = true;
-        requestAnimationFrame(() => {
-          onUpdateY(who, cardId, y);
-          rafPending = false;
-        });
+      if (Date.now() - lastSendTime >= 80) {
+        lastSendTime = Date.now();
+        onUpdateY(who, cardId, y);
       }
     }
 
@@ -56,6 +55,9 @@
       target.removeEventListener('pointermove', onMove);
       target.removeEventListener('pointerup', onUp);
       target.removeEventListener('pointercancel', onUp);
+      if (lastY !== null) {
+        onUpdateY(who, cardId, lastY);
+      }
     }
 
     target.addEventListener('pointermove', onMove);
