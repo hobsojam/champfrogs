@@ -44,3 +44,24 @@ jobs:
       - name: Run smoke test
         working-directory: server
         run: node smoke.js
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Install server dependencies
+        working-directory: server
+        run: npm install
+      - name: Audit server dependencies
+        working-directory: server
+        run: npm audit --audit-level=high
+      - name: Install client dependencies
+        working-directory: client
+        run: npm install
+      - name: Audit client dependencies
+        working-directory: client
+        run: npm audit --audit-level=high
