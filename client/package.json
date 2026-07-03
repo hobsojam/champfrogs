@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "svelte": "^5.56.4",
     "vite": "^8.0.16"
