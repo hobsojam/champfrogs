@@ -2,6 +2,8 @@
 
 A two-player web tool for the Management 3.0 Moving Motivators exercise. Supports an interviewer and subject working through the exercise on separate devices in real time.
 
+**Live demo:** https://champfrogs.onrender.com — runs on Render's free tier, so the first load after a quiet period takes ~30–60 seconds while the instance wakes up.
+
 ## How it works
 
 **Phase 1 — Importance**
@@ -42,27 +44,33 @@ Open `http://<your-machine-ip>:3000` on both devices.
 
 ## Testing
 
-Run the end-to-end smoke test against a running server:
+**Unit tests** — sanitization matrix, order validation, session expiry:
+
+```bash
+cd server && npm test
+```
+
+**Smoke test** — 64 end-to-end checks against a running server, covering the full session lifecycle: HTTP API, built client assets, WebSocket flow, phase transitions, role-based state sanitization, authorization guards, message validation, rate limiting, solo mode, reconnect, and reset:
 
 ```bash
 cd server && npm start         # in one terminal
 node smoke.js                  # in another
 ```
 
-This runs 28 checks covering the full session lifecycle: HTTP API, WebSocket flow, phase transitions, role-based state sanitization, Y-position updates, interviewer card toggle, reset, and invalid-order rejection.
+**Browser E2E** — Playwright drives the built client through the paired and solo flows (requires `npm run build` in `client` first):
 
-Note: the smoke test covers the server protocol only. UI drag-and-drop requires manual verification in a browser.
+```bash
+cd client && npx playwright install chromium   # once
+npx playwright test
+```
+
+Note: card drag-and-drop still requires manual verification in a browser; the E2E tests submit the default arrangement.
 
 ## Deploying
 
-The Docker image is self-contained and runs on any platform that supports Node.js 26 or Docker. Push to Railway, Render, Fly.io, or similar:
+The demo instance runs on Render's free tier, defined by `render.yaml`: in Render choose New → Blueprint, select this repo, and confirm. Merges to `master` auto-deploy.
 
-```bash
-# Example: Railway
-railway up
-```
-
-Set the `PORT` environment variable if the platform requires it (most do this automatically). No database or external services required.
+The Docker image is otherwise self-contained and runs on any platform that supports Node.js 26 or Docker (Railway, Fly.io, or similar). Set the `PORT` environment variable if the platform requires it (most do this automatically), and `TRUST_PROXY=true` behind a TLS-terminating proxy so rate limiting sees real client IPs. No database or external services required.
 
 ## Environment variables
 
