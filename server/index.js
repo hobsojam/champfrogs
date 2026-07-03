@@ -15,6 +15,9 @@ const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 const WS_CONNECTION_LIMIT_PER_IP = Number.parseInt(process.env.WS_CONNECTION_LIMIT_PER_IP, 10) || 10;
 
 const app = express();
+// Behind a TLS-terminating proxy (e.g. Render), Express must trust the
+// forwarded IP so the HTTP rate limiters key on real client addresses.
+if (TRUST_PROXY) app.set('trust proxy', 1);
 app.use(express.json());
 
 app.use((req, res, next) => {
