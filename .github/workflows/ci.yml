@@ -28,6 +28,10 @@ jobs:
         working-directory: client
         run: npm install
 
+      - name: Run server unit tests
+        working-directory: server
+        run: npm test
+
       - name: Build client
         working-directory: client
         run: npm run build
@@ -44,6 +48,14 @@ jobs:
       - name: Run smoke test
         working-directory: server
         run: node smoke.js
+
+      - name: Install Playwright browsers
+        working-directory: client
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser E2E tests
+        working-directory: client
+        run: npx playwright test
 
   audit:
     name: Dependency audit

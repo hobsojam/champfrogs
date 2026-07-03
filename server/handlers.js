@@ -167,4 +167,4 @@ async function handleMessage(ws, session, data) {
   }
 }
 
-module.exports = { handleMessage };
+module.exports = { handleMessage, validateOrder };

@@ -8,3 +8,5 @@ server/public/
 .claude/
 .codex/
 .mcp.json
+test-results/
+playwright-report/

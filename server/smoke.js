@@ -93,6 +93,18 @@ function sendAndWait(ws, messages, msg, predicate, timeout = 2000) {
   return waitForState(messages, predicate, timeout, fromIndex);
 }
 
+async function sendAndWaitForError(ws, messages, msg, timeout = 1000) {
+  const fromIndex = messages.length;
+  ws.send(JSON.stringify(msg));
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const err = messages.slice(fromIndex).find(m => m.type === 'error');
+    if (err) return err;
+    await new Promise(r => setTimeout(r, 25));
+  }
+  return null;
+}
+
 async function run() {
   console.log('\n=== Champfrogs Smoke Test ===\n');
 
@@ -332,6 +344,89 @@ async function run() {
   assert(afterRcArrange.phase === 'interviewer_arrange', 'Reconnect: finish_arrange succeeds after reconnect');
 
   rcWs2.close();
+
+  // --- Unjoined-socket guards ---
+  console.log('\nUnjoined-socket guards:');
+  const { body: guardBody } = await post('/api/sessions');
+  const { ws: guardWs, messages: guardMsgs } = await openWs(guardBody.id, 'lurker-id');
+  await waitForState(guardMsgs, s => s.phase === 'waiting');
+
+  let err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'reset' });
+  assert(err?.code === 'invalid_role', 'Unjoined socket cannot reset');
+  err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'set_phase', phase: 'phase2' });
+  assert(err?.code === 'invalid_role', 'Unjoined socket cannot set phase');
+  err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'update_y', who: 'subject', cardId: 'C', y: 10 });
+  assert(err?.code === 'invalid_role', 'Unjoined socket cannot update Y positions');
+  err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'finish_arrange', order: CARDS });
+  assert(err?.code === 'wrong_phase', 'Unjoined socket cannot finish arrange');
+  err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'join', role: 'moderator' });
+  assert(err?.code === 'invalid_role', 'Unknown role is rejected');
+  err = await sendAndWaitForError(guardWs, guardMsgs, { type: 'bogus_type' });
+  assert(err?.code === 'unknown_message_type', 'Unknown message type is rejected');
+
+  const guardCheck = await get(`/api/sessions/${guardBody.id}`);
+  assert(guardCheck.body.phase === 'waiting' && guardCheck.body.participantCount === 0,
+    'Session unchanged after rejected messages');
+  guardWs.close();
+
+  // --- Message validation ---
+  console.log('\nMessage validation:');
+  const { body: valBody } = await post('/api/sessions', { mode: 'solo' });
+  const { ws: valWs, messages: valMsgs } = await openWs(valBody.id, 'val-subject-id');
+  await waitForState(valMsgs, s => s.phase === 'waiting');
+  await sendAndWait(valWs, valMsgs, { type: 'join', role: 'subject' }, s => s.phase === 'subject_arrange');
+
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'set_phase', phase: 'phase2' });
+  assert(err?.code === 'wrong_phase', 'Cannot jump to phase2 before reveal/arrange is done');
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'set_phase', phase: 'waiting' });
+  assert(err?.code === 'invalid_phase', 'set_phase only accepts phase2/reveal');
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'finish_arrange', order: CARDS.slice(0, 9) });
+  assert(err?.code === 'invalid_order', 'Order with 9 cards is rejected');
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'finish_arrange', order: [...CARDS.slice(0, 9), 'X'] });
+  assert(err?.code === 'invalid_order', 'Order with unknown card ID is rejected');
+
+  await sendAndWait(valWs, valMsgs, { type: 'finish_arrange', order: CARDS }, s => s.phase === 'phase2');
+
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'update_y', who: 'interviewer', cardId: 'C', y: 10 });
+  assert(err?.code === 'invalid_role', "Cannot update the other role's Y positions");
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'update_y', who: 'subject', cardId: 'X', y: 10 });
+  assert(err?.code === 'invalid_card_id', 'Unknown card ID in update_y is rejected');
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'update_y', who: 'subject', cardId: 'C', y: 150 });
+  assert(err?.code === 'invalid_y_position', 'Y above 100 is rejected');
+  err = await sendAndWaitForError(valWs, valMsgs, { type: 'update_y', who: 'subject', cardId: 'C', y: 'abc' });
+  assert(err?.code === 'invalid_y_position', 'Non-numeric Y is rejected');
+
+  // Solo sessions have no interviewer role
+  const { ws: soloIntWs, messages: soloIntMsgs } = await openWs(valBody.id, 'val-intruder-id');
+  await waitForState(soloIntMsgs, s => s.phase !== null);
+  err = await sendAndWaitForError(soloIntWs, soloIntMsgs, { type: 'join', role: 'interviewer' });
+  assert(err?.code === 'invalid_role', 'Solo session rejects interviewer join');
+  soloIntWs.close();
+  valWs.close();
+
+  // --- Lowercase session code ---
+  console.log('\nLowercase session code:');
+  const lcInfo = await get(`/api/sessions/${valBody.id.toLowerCase()}`);
+  assert(lcInfo.status === 200, 'GET with lowercase code finds the session');
+  const { ws: lcWs, messages: lcMsgs } = await openWs(valBody.id.toLowerCase(), 'lc-id');
+  const lcState = await waitForState(lcMsgs, s => s.id === valBody.id);
+  assert(lcState.id === valBody.id, 'WS connect with lowercase code reaches the session');
+  lcWs.close();
+
+  // --- WS message flood ---
+  console.log('\nWS message flood:');
+  const { body: floodBody } = await post('/api/sessions');
+  const { ws: floodWs, messages: floodMsgs } = await openWs(floodBody.id, 'flood-id');
+  await waitForState(floodMsgs, s => s.phase === 'waiting');
+  const floodClose = new Promise(resolve => floodWs.on('close', code => resolve(code)));
+  for (let i = 0; i < 40; i++) {
+    floodWs.send(JSON.stringify({ type: 'bogus_type' }));
+  }
+  const floodCloseCode = await Promise.race([
+    floodClose,
+    new Promise(r => setTimeout(() => r('timeout'), 3000)),
+  ]);
+  assert(floodCloseCode === 4001, `Flooding >30 msgs/sec closes the connection with 4001 (got ${floodCloseCode})`);
 
   // Summary
   console.log(`\n${passed + failed} checks: ${passed} passed, ${failed} failed`);
