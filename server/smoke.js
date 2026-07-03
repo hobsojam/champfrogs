@@ -45,6 +45,16 @@ function get(path) {
   });
 }
 
+function getRaw(path) {
+  return new Promise((resolve, reject) => {
+    http.get(`${BASE}${path}`, (res) => {
+      let raw = '';
+      res.on('data', c => raw += c);
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: raw }));
+    }).on('error', reject);
+  });
+}
+
 function openWs(sessionId, participantId) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`${WS_BASE}/ws?sessionId=${sessionId}&participantId=${participantId}`);
@@ -99,6 +109,23 @@ async function run() {
 
   const notFound = await get('/api/sessions/ZZZZ');
   assert(notFound.status === 404, 'GET unknown session returns 404');
+
+  // --- Built client assets ---
+  console.log('\nBuilt client assets:');
+  const page = await getRaw('/');
+  assert(page.status === 200, 'GET / returns 200');
+  assert((page.headers['content-type'] || '').includes('text/html'), 'GET / serves HTML');
+  assert(page.body.includes('<div id="app"'), 'Page contains the #app mount point');
+
+  const assetPaths = [...page.body.matchAll(/(?:src|href)="(\/[^"]+\.(?:js|css))"/g)].map(m => m[1]);
+  assert(assetPaths.some(p => p.endsWith('.js')), `Page references a JS bundle (found: ${assetPaths.join(', ') || 'none'})`);
+  for (const assetPath of assetPaths) {
+    const asset = await getRaw(assetPath);
+    // The SPA fallback answers unknown paths with index.html and a 200,
+    // so a missing bundle shows up as text/html here, not as a 404.
+    const isHtmlFallback = (asset.headers['content-type'] || '').includes('text/html');
+    assert(asset.status === 200 && !isHtmlFallback && asset.body.length > 0, `Asset ${assetPath} is served`);
+  }
 
   // --- WebSocket flow ---
   console.log('\nWebSocket flow:');
