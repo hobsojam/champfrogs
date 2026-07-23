@@ -22,11 +22,11 @@ jobs:
 
       - name: Install server dependencies
         working-directory: server
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Install client dependencies
         working-directory: client
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Run server unit tests
         working-directory: server
@@ -67,13 +67,13 @@ jobs:
           node-version: '26'
       - name: Install server dependencies
         working-directory: server
-        run: npm install
+        run: npm install --ignore-scripts
       - name: Audit server dependencies
         working-directory: server
         run: npm audit --audit-level=high
       - name: Install client dependencies
         working-directory: client
-        run: npm install
+        run: npm install --ignore-scripts
       - name: Audit client dependencies
         working-directory: client
         run: npm audit --audit-level=high
